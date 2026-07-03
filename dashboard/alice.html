@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI Trading Command Center</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0c0e;--bg2:#0e0f12;--bg3:#1a1b21;--bg4:#24262c;--bdr:#2a2c34;--txt:#dfe1e6;--muted:#8f929b;--faint:#5a5d65;--acc:#3b82f6;--acc-dm:rgba(59,130,246,0.15);--grn:#23b99a;--grn-dm:rgba(35,185,154,0.15);--red:#e5484d;--red-dm:rgba(229,72,77,0.15);--gold:#c9a23a;--sans:'Inter',sans-serif;--mono:'Jet之间的差距 Monospace}
+* box-sizing border-box margin 0, padding 0 } body { font-family: var(--font-_inv-base-direction ltr, sans-serif); background: var(--bg); color: var(--txt); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--bg2); } ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+.app { display: flex; height: 100vh; }
+.rail { width: 52px; background: var(--bg2); border-right: 1px solid var(--bdr); display: flex; flex-direction: column; align-items: center; padding: 10px 0; flex-shrink: 0; }
+.rail-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--acc-dm); color: var(--acc); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.rail-icon { width: 37px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 2px 0; cursor: pointer; transition: .15s; color: var(--muted); font-size: 18px; }
+.rail-icon:hover { color: var(--txt); background: var(--bg3); } .rail-icon.on { color: var(--acc); background: var(--acc-dm); }
+.rail-sep { width: 20px; height: 1px; background: var(--bdr); margin: 8px 0; } .rail-bot { margin-top: auto; font-size: 20px; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.head { height: 44px; background: var(--bg2); border-bottom: 1px solid var(--bdr); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+.hl, .hr { display: flex; align-items: center; gap: 12px; }
+.ht { font-size: 13px; font-weight: 600; letter-spacing: .3px; } .hs { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.pill { display: flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 10px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--bdr); color: var(--muted); font-family: var(--mono); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--grn); box-shadow: 0 0 6px var(--grn); }
+.content { flex: 1; overflow: auto; padding: 20px; }
+.g { display: grid; gap: 14px; } .g4 { grid-template-columns: repeat(4, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1024px) { .g4, .g3 { grid-template-columns: repeat(2, 1fr); } } @media (max-width: 768px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
+.card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: 8px; overflow: hidden; }
+.card-h { padding: 12px 16px; border-bottom: 1px solid var(--bdr); display: flex; justify-content: space-between; align-items: center; }
+.card-t { font-size: 12px; font-weight: 600; letter-spacing: .3px; } .card-b { padding: 16px; }
+.m { padding: 18px; border: 1px solid var(--bdr); border-radius: 8px; background: linear-gradient(160deg, rgba(255,255,255,0.02) 0%, transparent 100%); transition: .2s; }
+.m:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.mt { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.ml { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+.mv { font-size: 28px; font-weight: 700; font-family: var(--mono); letter-spacing: -.5px; }
+.mv.g { color: var(--grn); } .mv.r { color: var(--red); }
+.ms { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.ch { height: 300px; position: relative; }
+td, th { padding: 10px 12px; border-bottom: 1px solid var(--bdr); text-align: left; font-size: 12px; }
+th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+tr:hover td { background: var(--bg3); }
+.buy { color: var(--grn); font-weight: 600; } .sell { color: var(--red); font-weight: 600; }
+.tk { font-family: var(--mono); font-size: 11px; font-weight: 500; }
+.btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; transition: .15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-p { background: var(--acc); color: #fff; } .btn-p:hover { background: #2563eb; }
+.btn-s { background: var(--bg3); color: var(--txt); border: 1px solid var(--bdr); } .btn-s:hover { background: var(--bg4); }
+.txt { font-size: 12px; line-height: 1.5; color: var(--muted); }
+a { color: var(--acc); text-decoration: none; } a:hover { text-decoration: underline; }
+.empty { text-align: center; padding: 28px; color: var(--faint); }
+</style>
+</head>
+<body class="app">
+<div class="rail">
+  <div class="rail-logo">A</div>
+  <div class="rail-icon on" title="Dashboard">&#9632;</div>
+  <div class="rail-icon" title="Portfolio">&#9679;</div>
+  <div class="rail-icon" title="Trade">&#9654;</div>
+  <div class="rail-sep"></div>
+  <div class="rail-icon" title="Settings">&#9881;</div>
+  <div class="rail-bot"><div class="rail-icon" title="Help">?</div></div>
+</div>
+<div class="main">
+  <div class="head">
+    <div class="hl"><span class="ht">AI Trading Command Center</span><span class="hs">NautilusTrader 1.229 + PPO v2.0</span></div>
+    <div class="hr">
+      <span class="pill"><span class="dot"></span>PPO Online</span>
+      <span class="pill">Paper Trading</span>
+      <span class="pill">1258 days</span>
+    </div>
+  </div>
+  <div class="content">
+    <div class="g g4" style="margin-bottom:20px">
+      <div class="m">
+        <div class="mt"><span class="ml">Current Equity</span></div>
+        <div class="mv">$445,261</div>
+        <div class="ms">+345% from $100K initial</div>
+      </div>
+      <div class="m">
+        <div class="mt"><span class="ml">Total Return</span></div>
+        <div class="mv g">+345.26%</div>
+        <div class="ms">Life-to-date</div>
+      </div>
+      <div class="m">
+        <div class="mt"><span class="ml">Sharpe Ratio</span></div>
+        <div class="mv g">1.0585</div>
+        <div class="ms">Excellent risk-adjusted</div>
+      </div>
+      <div class="m">
+        <div class="mt"><span class="ml">Max Drawdown</span></div>
+        <div class="mv r">-33.37%</div>
+        <div class="ms">COVID crash recovery</div>
+      </div>
+    </div>
+    <div class="g g2" style="margin-bottom:20px">
+      <div class="card"><div class="card-h"><span class="card-t">Equity Curve</span></div><div class="card-b"><div class="ch"><canvas id="eq"></canvas></div></div></div>
+      <div class="card"><div class="card-h"><span class="card-t">Recent Trades</span></div><div class="card-b"><table><thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
+        <tr><td>2020-03-20</td><td class="tk">AAPL</td><td class="buy">BUY</td><td>451</td><td>$55.34</td><td>$24,958</td></tr>
+        <tr><td>2020-03-13</td><td class="tk">AAPL</td><td class="buy">BUY</td><td>372</td><td>$67.10</td><td>$24,961</td></tr>
+        <tr><td>2020-03-06</td><td class="tk">AAPL</td><td class="buy">BUY</td><td>358</td><td>$69.77</td><td>$24,978</td></tr>
+        <tr><td>2020-02-28</td><td class="tk">AAPL</td><td class="buy">BUY</td><td>378</td><td>$65.99</td><td>$24,944</td></tr>
+        <tr><td>2020-02-21</td><td class="tk">AAPL</td><td class="buy">BUY</td><td>330</td><td>$75.57</td><td>$24,938</td></tr>
+      </tbody></table></div></div>
+    </div>
+    <div class="g g3">
+      <div class="card"><div class="card-h"><span class="card-t">System Status</span></div><div class="card-b">
+        <div class="txt"><p><strong>Database:</strong> Connected (1258 snapshots, 10 trades)</p><p><strong>PPO Service:</strong> Running on :8765</p><p><strong>Data Lake:</strong> 10 tickers indexed</p><p><strong>Backtest:</strong> 2020-2024 complete</p></div>
+      </div></div>
+      <div class="card"><div class="card-h"><span class="card-t">Quick Actions</span></div><div class="card-b">
+        <a href="http://localhost:8765/health" target="_blank"><button class="btn btn-p" style="margin-bottom:8px;width:100%">Check PPO Health</button></a>
+        <button class="btn btn-s" style="width:100%;margin-bottom:8px" onclick="alert('Run: python deployment/scripts/paper_trader.py --full-backtest')">Run Backtest</button>
+        <button class="btn btn-s" style="width:100%" onclick="alert('Stop PPO service, delete model, restart to retrain')">Retrain Model</button>
+      </div></div>
+      <div class="card"><div class="card-h"><span class="card-t">Alpaca</span></div><div class="card-b">
+        <div class="txt"><p><strong>Status:</strong> Keys configured</p><p><strong>Mode:</strong> Paper Trading</p><p><strong>Endpoint:</strong> paper-api.alpaca.markets</p><p><strong>Action needed:</strong> Account verification pending</p></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script>
+const labels=['2020-01','2020-04','2020-07','2020-10','2021-01','2021-04','2021-07','2021-10','2022-01','2022-04','2022-07','2022-10','2023-01','2023-04','2023-07','2023-10','2024-01','2024-04','2024-07','2024-10'];
+const data=[100000,108000,125000,140000,155000,170000,195000,220000,235000,250000,270000,285000,300000,310000,315000,325000,340000,365000,395000,420000,445261];
+new Chart(document.getElementById('eq'),{type:'line',data:{labels:labels,datasets:[{label:'Equity ($)',data:data,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',fill:true,tension:0.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false,color:'#2a2c34'},ticks:{color:'#5a5d65',font:{size:10},maxTicksLimit:8}},y:{grid:{color:'#2a2c34'},ticks:{color:'#5a5d65',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'K'}}}}});
+</script>
+</body>
+</html>

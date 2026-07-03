@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: "ppo-microservice"
+    static_configs:
+      - targets: ["ppo-service:8765"]
+    metrics_path: "/metrics"
+    scheme: http
+
+  - job_name: "paper-trader"
+    static_configs:
+      - targets: ["paper-trader:8766"]
+    metrics_path: "/metrics"
+    scheme: http
+
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+    metrics_path: "/metrics"
+    scheme: http

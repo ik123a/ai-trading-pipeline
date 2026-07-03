@@ -1,0 +1,114 @@
+# Phase 4: Deployment Stack
+# Compose v2+ ignores the obsolete `version` key
+
+services:
+  # ────────────────────────────────────────────
+  # PPO Inference Microservice (Phase 3)
+  # Trained model + FastAPI endpoint
+  # ────────────────────────────────────────────
+  ppo-service:
+    build:
+      context: ..
+      dockerfile: deployment/ppo-service/Dockerfile
+    container_name: ppo-service
+    ports:
+      - "8765:8765"
+    environment:
+      - KMP_DUPLICATE_LIB_OK=TRUE
+      - MODEL_TRAIN_STEPS=3000
+    volumes:
+      - ppo-artifacts:/app/artifacts
+    networks:
+      - trading-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ────────────────────────────────────────────
+  # Paper Trading Runner (Phase 4)
+  # NautilusTrader + SQLite trade log
+  # ────────────────────────────────────────────
+  paper-trader:
+    build:
+      context: ..
+      dockerfile: deployment/nautilus/Dockerfile
+    container_name: paper-trader
+    depends_on:
+      ppo-service:
+        condition: service_healthy
+    environment:
+      - PPO_URL=http://ppo-service:8765/predict_weights
+      - INITIAL_CASH=100000
+      - TICKER=AAPL
+      - CATCHUP=true
+    volumes:
+      - trade-data:/app/deployment
+    networks:
+      - trading-net
+    restart: "no"
+
+  # ────────────────────────────────────────────
+  # PostgreSQL (persistent trade log for production)
+  # ────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: trade-postgres
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-trading_secret}
+      POSTGRES_DB: trading
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - trading-net
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────
+  # Prometheus (metrics scraping)
+  # ────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trade-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - trading-net
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────
+  # Grafana (dashboards & visualization)
+  # ────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trade-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - trading-net
+    restart: unless-stopped
+
+volumes:
+  ppo-artifacts:
+  trade-data:
+  pg-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  trading-net:
+    driver: bridge

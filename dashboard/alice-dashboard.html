@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading Command Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg: #0b0c0e; --bg-2: #0e0f12; --bg-3: #1a1b21; --bg-4: #24262c;
+            --border: #2a2c34; --border-hover: #3a3c44;
+            --text: #dfe1e6; --text-muted: #8f929b; --text-faint: #5a5d65;
+            --accent: #3b82f6; --accent-dim: rgba(59,130,246,0.15);
+            --green: #23b99a; --green-dim: rgba(35,185,154,0.15);
+            --red: #e5484d; --red-dim: rgba(229,72,77,0.15);
+            --gold: #c9a23a;
+            --font-sans: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; min-height: 100vh; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-2); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--bg-4); }
+
+        /* App Layout */
+        .app { display: flex; height: 100vh; }
+        .rail { width: 52px; background: var(--bg-2); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 10px 0; flex-shrink: 0; }
+        .rail-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--accent); margin-bottom: 16px; }
+        .rail-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 2px 0; cursor: pointer; transition: all 0.15s; color: var(--text-muted); font-size: 20px; }
+        .rail-icon:hover { color: var(--text); background: var(--bg-3); }
+        .rail-icon.active { color: var(--accent); background: var(--accent-dim); }
+        .rail-sep { width: 20px; height: 1px; background: var(--border); margin: 8px 0; }
+        .rail-bottom { margin-top: auto; }
+
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .header { height: 44px; background: var(--bg-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-title { font-size: 13px; font-weight: 600; letter-spacing: 0.3px; }
+        .header-sub { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .status-pill { display: flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 8px; border-radius: 20px; background: var(--bg-3); border: 1px solid var(--border); color: var(--text-muted); font-family: var(--font-mono); }
+        .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+        .status-pill.online .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+
+        /* Grid */
+        .grid { display: grid; gap: 12px; }
+        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+        /* Cards */
+        .card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+        .card-body { padding: 16px; }
+
+        /* Metric Hero Cards */
+        .metric-card { padding: 16px; border-radius: 6px; border: 1px solid var(--border); background: linear-gradient(160deg, rgba(255,255,255,0.02) 0%, transparent 100%); transition: all 0.2s; position: relative; overflow: hidden; }
+        .metric-card::before { content: ''; position: absolute; inset: 0; border-radius: 6px; border: 1px solid transparent; transition: border-color 0.2s; pointer-events: none; }
+        .metric-card:hover::before { border-color: var(--border-hover); }
+        .metric-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .metric-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .metric-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+        .metric-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .metric-icon.blue { background: var(--accent-dim); color: var(--accent); }
+        .metric-icon.green { backgroundiants:red intervening with : var(--green-dim); color:omplexityleak; }
+        .metric-icon.red { background: var(--red-dim); color:inding on looked / 10}}}arithm.  fireof/ criticalvar .metric39 ; complexity: 
+    );息architecemergencylement: 假设性指令

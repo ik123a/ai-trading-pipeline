@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs & runtime data
+logs/
+*.log
+live_log.csv
+
+# Analytics output
+analytics/
+
+# Cloned sub‑projects (have their own git repos)
+AI-Trader/
+Vibe-Trading/
+Krypt-Trader/
+
+# Large data lake (binary parquet)
+data-lake/
+.ipynb_checkpoints/
+
+# From the Chrome extension (not part of this repo)
+TV trade/
+*.txt.example
+# API key files - never commit
+*_API_KEY.txt
+# Local env
+.env
