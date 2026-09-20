@@ -27,3 +27,32 @@ TV trade/
 *_API_KEY.txt
 # Local env
 .env
+
+# Auto-added safety ignores for large files and temp data
+node_modules/
+.venv/
+venv/
+env/
+.next/
+dist/
+build/
+.gradle/
+local.properties
+*.iml
+.idea/libraries/
+.idea/caches/
+*.h5
+*.pt
+*.bin
+*.gguf
+*.zst
+*.tar.gz
+*.iso
+*.vmdk
+*.dll
+*.exe
+*.zip
+*.7z
+*.rar
+.pytest_cache/
+.turbo/
