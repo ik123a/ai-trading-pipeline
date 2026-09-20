@@ -51,10 +51,17 @@ else:
     # We'll reuse `pos_json` later instead of re‑fetching.
 
 cash = float(acc.get('cash', 0))
-# cash = float(acc['cash'])  # duplicated, removed
+# Fetch open positions for wash-trade prevention
+positions_raw = session.get(f'{BASE}/v2/positions').json()
+held_positions = {}
+if isinstance(positions_raw, list):
+    for p in positions_raw:
+        held_positions[p['symbol']] = {'qty': int(float(p['qty'])), 'avg_entry': float(p['avg_entry_price'])}
+held_symbols = set(held_positions.keys())
 print(f'Account: {acc["status"]}')
 print(f'Equity: ${equity:,.2f}')
 print(f'Cash: ${cash:,.2f}')
+print(f'Holding: {held_symbols if held_symbols else "none"}')
 print()
 
 # For each symbol, analyze
@@ -76,22 +83,37 @@ for symbol in SYMBOLS:
         if sig != Signal.HOLD:
             print(f'   - {name}: {sig}')
     
-    # Decision: BUY only if 1+ strategy agrees AND confidence > 0.45 (temporarily relaxed for demo)
+    # Decision: BUY only if 1+ strategy agrees AND confidence > 0.45
+    # Guard: don't BUY a symbol we already hold (avoids wash-trade rejection)
+    # Guard: don't SELL a symbol we don't hold (avoids wash-trade rejection)
     action = None
-    if buys >= 1 and ensemble_conf > 0.45:
-        action = 'BUY'
-        decisions.append(('BUY', symbol, prices[-1], ensemble_conf))
-    elif sells >= 1 and ensemble_conf > 0.45:
-        action = 'SELL'
-        decisions.append(('SELL', symbol, prices[-1], ensemble_conf))
+    if symbol in held_symbols:
+        # We hold it — only act on SELL signals to close/reduce
+        if sells >= 1 and ensemble_conf > 0.45:
+            action = 'SELL'
+            decisions.append(('SELL', symbol, prices[-1], ensemble_conf))
+        # If we hold and signals are BUY, do nothing (don't add)
+    else:
+        # We don't hold it — only act on BUY signals to open
+        if buys >= 1 and ensemble_conf > 0.45:
+            action = 'BUY'
+            decisions.append(('BUY', symbol, prices[-1], ensemble_conf))
+        # If we don't hold and signals are SELL, do nothing (can't short in paper mode)
+
     if action:
         try:
             entry_price = prices[-1]
-            # size: target 5% of equity, capped by 15% position cap
-            target_dollar = float(acc['equity']) * 0.05
-            qty = int(target_dollar // entry_price)
-            max_qty = int((float(acc['equity']) * 0.15) // entry_price)
-            qty = max(0, min(qty, max_qty))
+            # Size based on AVAILABLE CASH (not total equity) to avoid insufficient buying power
+            if action == 'BUY':
+                available = float(acc.get('buying_power', acc.get('cash', 0)))
+                target_dollar = available * 0.10   # use 10% of buying power per trade
+                qty = int(target_dollar // entry_price)
+                max_qty = int((float(acc['equity']) * 0.15) // entry_price)  # 15% position cap
+                qty = max(0, min(qty, max_qty))
+            else:  # SELL — sell 1/3 of held position
+                held_qty = int(held_positions.get(symbol, {}).get('qty', 0))
+                qty = max(1, held_qty // 3) if held_qty > 0 else 0
+
             if qty > 0:
                 order = {'symbol': symbol,
                          'qty': qty,
@@ -104,6 +126,8 @@ for symbol in SYMBOLS:
                     print(f'   → {action} order placed: qty={qty} {symbol} @ ${entry_price:.2f} (order_id={order_id})')
                 else:
                     print(f'   ⚠ order failed: {r.status_code} {r.text[:140]}')
+            elif action == 'BUY':
+                print(f'   → skip BUY {symbol}: not enough buying power (${float(acc.get("buying_power", acc.get("cash",0))):.2f}) for qty @ ${entry_price:.2f}')
         except Exception as e:
             print(f'   ⚠ order error: {e}')
 
