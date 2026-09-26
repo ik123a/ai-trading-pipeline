@@ -13,7 +13,7 @@ ALPACA_BASE_URL = "https://paper-api.alpaca.markets/v2"
 
 # API Keys - stored as environment variables for safety
 # Set these in your terminal:
-#   export APCA_API_KEY_ID="PK5CSDOWI5NEH6NRRQM2N3QENN"
+#   export APCA_API_KEY_ID="YOUR_ALPACA_KEY_ID"
 #   export APCA_API_SECRET_KEY="***"
 ALPACA_API_KEY_ID = os.environ.get("APCA_API_KEY_ID", "")
 ALPACA_SECRET_KEY = os.environ.get("APCA_API_SECRET_KEY", "")

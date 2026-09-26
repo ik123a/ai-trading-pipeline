@@ -56,3 +56,10 @@ local.properties
 *.rar
 .pytest_cache/
 .turbo/
+
+# Runtime trading state and output logs (never commit live account data)
+trading_state.json
+trading_log.txt
+profit_strategy_log.csv
+*.log
+
